@@ -1,0 +1,230 @@
+// Prisma schema for Restaurant & Orders Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- ENUMS --------------------
+
+enum RestaurantStatus {
+  pending
+  active
+  suspended
+}
+
+enum PaymentMethod {
+  cash
+  card
+  wallet
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  delivering
+  delivered
+  cancelled
+}
+
+enum StaffRole {
+  owner
+  manager
+  cook
+}
+
+// -------------------- MODELS --------------------
+
+// 1. Users (Clients)
+model User {
+  id           BigInt      @id @default(autoincrement())
+  first_name   String
+  last_name    String
+  email        String      @unique
+  phone        String      @unique
+  password_hash String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  addresses    Address[]
+  orders       Order[]
+  reviews      Review[]
+}
+
+// 2. Addresses (Livraison)
+model Address {
+  id           BigInt    @id @default(autoincrement())
+  user_id      BigInt
+  label        String
+  city         String
+  zone         String
+  full_address String
+  latitude     Float
+  longitude    Float
+  is_default   Boolean   @default(false)
+
+  user         User      @relation(fields: [user_id], references: [id])
+  orders       Order[]
+}
+
+// 3. Restaurants
+model Restaurant {
+  id                 BigInt               @id @default(autoincrement())
+  owner_id           BigInt
+  name               String
+  description        String?
+  address            String
+  phone              String
+  whatsapp           String?
+  logo_url           String?
+  banner_url         String?
+  opening_time       String                // PostgreSQL TIME type, can be stored as string
+  closing_time       String
+  delivery_available Boolean               @default(true)
+  min_order_price    Float
+  status             RestaurantStatus      @default(pending)
+  created_at         DateTime             @default(now())
+
+  owner              RestaurantStaff      @relation(fields: [owner_id], references: [id])
+  categories         RestaurantCategoryAssignment[]
+  menus              Menu[]
+  orders             Order[]
+  reviews            Review[]
+  staff              RestaurantStaff[]
+}
+
+// 4. Restaurant Categories
+model RestaurantCategory {
+  id         BigInt  @id @default(autoincrement())
+  name       String  @unique
+  assignments RestaurantCategoryAssignment[]
+}
+
+// 5. Restaurant Category Assignments (Many-to-Many)
+model RestaurantCategoryAssignment {
+  restaurant_id BigInt
+  category_id   BigInt
+
+  restaurant    Restaurant          @relation(fields: [restaurant_id], references: [id])
+  category      RestaurantCategory  @relation(fields: [category_id], references: [id])
+
+  @@id([restaurant_id, category_id])
+}
+
+// 6. Menus
+model Menu {
+  id           BigInt       @id @default(autoincrement())
+  restaurant_id BigInt
+  name         String
+
+  restaurant   Restaurant   @relation(fields: [restaurant_id], references: [id])
+  menu_items   MenuItem[]
+}
+
+// 7. Menu Items
+model MenuItem {
+  id        BigInt    @id @default(autoincrement())
+  menu_id   BigInt
+  name      String
+  description String?
+  price     Float
+  image_url String?
+  available Boolean  @default(true)
+
+  menu      Menu
+  options   MenuItemOption[]
+  order_items OrderItem[]
+}
+
+// 8. Menu Item Options
+model MenuItemOption {
+  id           BigInt    @id @default(autoincrement())
+  menu_item_id BigInt
+  name         String
+  price        Float
+
+  menu_item    MenuItem  @relation(fields: [menu_item_id], references: [id])
+  order_item_options OrderItemOption[]
+}
+
+// 9. Orders
+model Order {
+  id            BigInt     @id @default(autoincrement())
+  user_id       BigInt
+  restaurant_id BigInt
+  address_id    BigInt
+  total_amount  Float
+  delivery_fee  Float
+  payment_method PaymentMethod
+  status        OrderStatus   @default(pending)
+  created_at    DateTime     @default(now())
+
+  user          User         @relation(fields: [user_id], references: [id])
+  restaurant    Restaurant   @relation(fields: [restaurant_id], references: [id])
+  address       Address      @relation(fields: [address_id], references: [id])
+  order_items   OrderItem[]
+}
+
+// 10. Order Items
+model OrderItem {
+  id           BigInt    @id @default(autoincrement())
+  order_id     BigInt
+  menu_item_id BigInt
+  quantity     Int
+  unit_price   Float
+  total_price  Float
+
+  order        Order      @relation(fields: [order_id], references: [id])
+  menu_item    MenuItem   @relation(fields: [menu_item_id], references: [id])
+  options      OrderItemOption[]
+}
+
+// 11. Order Item Options
+model OrderItemOption {
+  order_item_id       BigInt
+  menu_item_option_id BigInt
+  added_price         Float
+
+  order_item          OrderItem       @relation(fields: [order_item_id], references: [id])
+  menu_item_option    MenuItemOption  @relation(fields: [menu_item_option_id], references: [id])
+
+  @@id([order_item_id, menu_item_option_id])
+}
+
+// 12. Reviews
+model Review {
+  id            BigInt   @id @default(autoincrement())
+  user_id       BigInt
+  restaurant_id BigInt
+  rating        Int
+  comment       String?
+  created_at    DateTime @default(now())
+
+  user          User        @relation(fields: [user_id], references: [id])
+  restaurant    Restaurant  @relation(fields: [restaurant_id], references: [id])
+}
+
+// 13. Restaurant Staff
+model RestaurantStaff {
+  id           BigInt   @id @default(autoincrement())
+  restaurant_id BigInt
+  email        String   @unique
+  password_hash String
+  role         StaffRole
+
+  restaurant   Restaurant @relation(fields: [restaurant_id], references: [id])
+  owned_restaurants Restaurant[] @relation("OwnerRestaurants")
+}
+
+// 14. Admin Users
+model AdminUser {
+  id           BigInt   @id @default(autoincrement())
+  email        String   @unique
+  password_hash String
+  created_at   DateTime @default(now())
+}

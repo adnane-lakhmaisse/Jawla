@@ -1,0 +1,15 @@
+# Dossier li ma bghitch idkhol
+design/
+
+# Les fichiers lokhrin li ma bghitich idkhlo f l-commit
+Fonctionnalites.txt
+SchemaBaseDonnees.txt
+Structure.txt
+uml_diagram.svg
+usecase_diagram.svg
+
+# Examples dyal les fichiers li 3ada ma kays7bohomch f l-projets:
+# *.log
+# *.tmp
+# .vscode/
+# node_modules/
