@@ -1,4 +1,9 @@
-// Prisma schema for Restaurant & Orders Platform
+// ═══════════════════════════════════════════════════════════════════════════
+// 🚀 PROFESSIONAL RESTAURANT & FOOD DELIVERY PLATFORM - DATABASE SCHEMA
+// ═══════════════════════════════════════════════════════════════════════════
+// Features: Multi-restaurant, Orders, Delivery tracking, Coupons, Reviews
+// Optimized for: Scalability, Performance, Analytics
+// ═══════════════════════════════════════════════════════════════════════════
 
 generator client {
   provider = "prisma-client-js"
@@ -9,222 +14,556 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// -------------------- ENUMS --------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 ENUMS
+// ═══════════════════════════════════════════════════════════════════════════
 
 enum RestaurantStatus {
-  pending
-  active
-  suspended
-}
-
-enum PaymentMethod {
-  cash
-  card
-  wallet
+  pending     // En attente de validation
+  active      // Actif et visible
+  suspended   // Suspendu temporairement
+  closed      // Fermé définitivement
 }
 
 enum OrderStatus {
+  pending     // En attente de confirmation
+  confirmed   // Confirmée par restaurant
+  preparing   // En préparation
+  ready       // Prête à être livrée
+  picked_up   // Récupérée par livreur
+  delivering  // En cours de livraison
+  delivered   // Livrée
+  cancelled   // Annulée
+}
+
+enum PaymentMethod {
+  cash        // Espèces à la livraison
+  card        // Carte bancaire
+  wallet      // Portefeuille électronique
+}
+
+enum PaymentStatus {
   pending
-  confirmed
-  preparing
-  delivering
-  delivered
-  cancelled
+  completed
+  failed
+  refunded
 }
 
 enum StaffRole {
-  owner
-  manager
-  cook
+  owner       // Propriétaire
+  manager     // Gérant
+  cook        // Cuisinier
+  cashier     // Caissier
 }
 
-// -------------------- MODELS --------------------
+enum CouponType {
+  percentage      // Pourcentage de réduction
+  fixed_amount    // Montant fixe
+  free_delivery   // Livraison gratuite
+}
 
-// 1. Users (Clients)
+enum NotificationType {
+  order_confirmed
+  order_preparing
+  order_ready
+  order_picked_up
+  order_delivered
+  order_cancelled
+  promotion
+  restaurant_update
+  driver_assigned
+}
+
+enum VehicleType {
+  moto
+  car
+  bicycle
+  scooter
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 👤 USERS & AUTHENTICATION
+// ═══════════════════════════════════════════════════════════════════════════
+
 model User {
-  id           BigInt      @id @default(autoincrement())
-  first_name   String
-  last_name    String
-  email        String      @unique
-  phone        String      @unique
+  id            BigInt    @id @default(autoincrement())
+  first_name    String
+  last_name     String
+  email         String    @unique
+  phone         String    @unique
   password_hash String
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
+  avatar_url    String?
+  is_verified   Boolean   @default(false)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime? // Soft delete
 
-  addresses    Address[]
-  orders       Order[]
-  reviews      Review[]
+  // Relations
+  addresses     Address[]
+  orders        Order[]
+  reviews       Review[]
+  favorites     UserFavorite[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([created_at])
 }
 
-// 2. Addresses (Livraison)
 model Address {
   id           BigInt    @id @default(autoincrement())
   user_id      BigInt
-  label        String
+  label        String    // Ex: Maison, Travail, Autre
   city         String
-  zone         String
+  zone         String    // Quartier
   full_address String
   latitude     Float
   longitude    Float
   is_default   Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  deleted_at   DateTime? // Soft delete
 
-  user         User      @relation(fields: [user_id], references: [id])
-  orders       Order[]
+  user   User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([user_id])
+  @@index([city])
 }
 
-// 3. Restaurants
+// ═══════════════════════════════════════════════════════════════════════════
+// 🍽️ RESTAURANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
 model Restaurant {
-  id                 BigInt               @id @default(autoincrement())
+  id                 BigInt           @id @default(autoincrement())
   owner_id           BigInt
   name               String
+  slug               String           @unique // For SEO-friendly URLs
   description        String?
   address            String
+  city               String
+  latitude           Float?
+  longitude          Float?
   phone              String
   whatsapp           String?
+  email              String?
   logo_url           String?
   banner_url         String?
-  opening_time       String                // PostgreSQL TIME type, can be stored as string
-  closing_time       String
-  delivery_available Boolean               @default(true)
-  min_order_price    Float
-  status             RestaurantStatus      @default(pending)
-  created_at         DateTime             @default(now())
+  delivery_available Boolean          @default(true)
+  pickup_available   Boolean          @default(true)
+  min_order_price    Float            @default(0)
+  avg_delivery_time  Int?             // Minutes moyens de livraison
+  delivery_radius_km Float?           // Rayon de livraison en km
+  commission_rate    Float            @default(15) // Commission plateforme (%)
+  rating             Float            @default(0)
+  total_reviews      Int              @default(0)
+  total_orders       Int              @default(0)
+  status             RestaurantStatus @default(pending)
+  is_featured        Boolean          @default(false)
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+  deleted_at         DateTime?
 
-  owner              RestaurantStaff      @relation(fields: [owner_id], references: [id])
-  categories         RestaurantCategoryAssignment[]
-  menus              Menu[]
-  orders             Order[]
-  reviews            Review[]
-  staff              RestaurantStaff[]
+  // Relations
+  owner      RestaurantStaff                @relation("OwnerRestaurants", fields: [owner_id], references: [id])
+  categories RestaurantCategoryAssignment[]
+  schedules  RestaurantSchedule[]
+  menus      Menu[]
+  orders     Order[]
+  reviews    Review[]
+  staff      RestaurantStaff[]
+  favorites  UserFavorite[]
+
+  @@index([status])
+  @@index([city])
+  @@index([rating])
+  @@index([name])
+  @@index([slug])
+  @@index([is_featured])
 }
 
-// 4. Restaurant Categories
 model RestaurantCategory {
-  id         BigInt  @id @default(autoincrement())
-  name       String  @unique
+  id          BigInt                         @id @default(autoincrement())
+  name        String                         @unique
+  slug        String                         @unique
+  icon_url    String?
+  description String?
+  sort_order  Int                            @default(0)
+  is_active   Boolean                        @default(true)
+
   assignments RestaurantCategoryAssignment[]
+
+  @@index([slug])
+  @@index([sort_order])
 }
 
-// 5. Restaurant Category Assignments (Many-to-Many)
 model RestaurantCategoryAssignment {
   restaurant_id BigInt
   category_id   BigInt
+  assigned_at   DateTime @default(now())
 
-  restaurant    Restaurant          @relation(fields: [restaurant_id], references: [id])
-  category      RestaurantCategory  @relation(fields: [category_id], references: [id])
+  restaurant Restaurant         @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  category   RestaurantCategory @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   @@id([restaurant_id, category_id])
+  @@index([restaurant_id])
+  @@index([category_id])
 }
 
-// 6. Menus
+model RestaurantSchedule {
+  id            BigInt  @id @default(autoincrement())
+  restaurant_id BigInt
+  day_of_week   Int     // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+  open_time     String? // Format: "09:00" - NULL si fermé
+  close_time    String? // Format: "23:00"
+  is_closed     Boolean @default(false)
+
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@unique([restaurant_id, day_of_week])
+  @@index([restaurant_id])
+}
+
+model RestaurantStaff {
+  id            BigInt    @id @default(autoincrement())
+  restaurant_id BigInt
+  first_name    String
+  last_name     String
+  email         String    @unique
+  phone         String?
+  password_hash String
+  role          StaffRole
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  restaurant        Restaurant   @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  owned_restaurants Restaurant[] @relation("OwnerRestaurants")
+
+  @@index([restaurant_id])
+  @@index([email])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🍔 MENUS & ITEMS
+// ═══════════════════════════════════════════════════════════════════════════
+
 model Menu {
-  id           BigInt       @id @default(autoincrement())
+  id            BigInt   @id @default(autoincrement())
   restaurant_id BigInt
-  name         String
+  name          String   // Ex: Burgers, Boissons, Desserts
+  description   String?
+  sort_order    Int      @default(0)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
 
-  restaurant   Restaurant   @relation(fields: [restaurant_id], references: [id])
-  menu_items   MenuItem[]
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+  items      MenuItem[]
+
+  @@index([restaurant_id])
+  @@index([sort_order])
 }
 
-// 7. Menu Items
 model MenuItem {
-  id        BigInt    @id @default(autoincrement())
-  menu_id   BigInt
-  name      String
-  description String?
-  price     Float
-  image_url String?
-  available Boolean  @default(true)
+  id               BigInt   @id @default(autoincrement())
+  menu_id          BigInt
+  name             String
+  slug             String
+  description      String?
+  price            Float
+  discounted_price Float? // Prix promotionnel
+  image_url        String?
+  preparation_time Int?     // Temps de préparation en minutes
+  calories         Int?
+  is_vegetarian    Boolean  @default(false)
+  is_spicy         Boolean  @default(false)
+  is_available     Boolean  @default(true)
+  is_featured      Boolean  @default(false)
+  sort_order       Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
-  menu      Menu
-  options   MenuItemOption[]
+  menu        Menu             @relation(fields: [menu_id], references: [id], onDelete: Cascade)
+  options     MenuItemOption[]
   order_items OrderItem[]
+
+  @@index([menu_id])
+  @@index([is_available])
+  @@index([is_featured])
+  @@index([slug])
 }
 
-// 8. Menu Item Options
 model MenuItemOption {
-  id           BigInt    @id @default(autoincrement())
+  id           BigInt  @id @default(autoincrement())
   menu_item_id BigInt
-  name         String
-  price        Float
+  name         String  // Ex: Taille, Sauce, Extra Fromage
+  price        Float   // Prix additionnel
+  is_available Boolean @default(true)
+  sort_order   Int     @default(0)
 
-  menu_item    MenuItem  @relation(fields: [menu_item_id], references: [id])
+  menu_item          MenuItem          @relation(fields: [menu_item_id], references: [id], onDelete: Cascade)
   order_item_options OrderItemOption[]
+
+  @@index([menu_item_id])
 }
 
-// 9. Orders
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛒 ORDERS & PAYMENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
 model Order {
-  id            BigInt     @id @default(autoincrement())
-  user_id       BigInt
-  restaurant_id BigInt
-  address_id    BigInt
-  total_amount  Float
-  delivery_fee  Float
-  payment_method PaymentMethod
-  status        OrderStatus   @default(pending)
-  created_at    DateTime     @default(now())
+  id                      BigInt        @id @default(autoincrement())
+  order_number            String        @unique // Ex: ORD-20250118-0001
+  user_id                 BigInt
+  restaurant_id           BigInt
+  address_id              BigInt
+  coupon_id               BigInt?
+  subtotal                Float         // Total avant réductions et frais
+  discount_amount         Float         @default(0)
+  delivery_fee            Float         @default(0)
+  service_fee             Float         @default(0)
+  total_amount            Float         // Montant final
+  payment_method          PaymentMethod
+  status                  OrderStatus   @default(pending)
+  special_instructions    String?       // Instructions spéciales du client
+  estimated_delivery_time DateTime?
+  cancelled_reason        String?
+  cancelled_by            String?       // "user", "restaurant", "admin"
+  
+  // Timestamps pour tracking
+  created_at    DateTime  @default(now())
+  confirmed_at  DateTime?
+  preparing_at  DateTime?
+  ready_at      DateTime?
+  picked_up_at  DateTime?
+  delivered_at  DateTime?
+  cancelled_at  DateTime?
 
-  user          User         @relation(fields: [user_id], references: [id])
-  restaurant    Restaurant   @relation(fields: [restaurant_id], references: [id])
-  address       Address      @relation(fields: [address_id], references: [id])
-  order_items   OrderItem[]
+  // Relations
+  user        User               @relation(fields: [user_id], references: [id])
+  restaurant  Restaurant         @relation(fields: [restaurant_id], references: [id])
+  address     Address            @relation(fields: [address_id], references: [id])
+  coupon      Coupon?            @relation(fields: [coupon_id], references: [id])
+  items       OrderItem[]
+  delivery    Delivery?
+  payment     PaymentTransaction?
+  
+  @@index([user_id])
+  @@index([restaurant_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([order_number])
 }
 
-// 10. Order Items
 model OrderItem {
-  id           BigInt    @id @default(autoincrement())
+  id           BigInt @id @default(autoincrement())
   order_id     BigInt
   menu_item_id BigInt
   quantity     Int
-  unit_price   Float
-  total_price  Float
+  unit_price   Float  // Prix unitaire au moment de la commande
+  total_price  Float  // Prix total de cet item
+  notes        String? // Notes spécifiques à l'item
 
-  order        Order      @relation(fields: [order_id], references: [id])
-  menu_item    MenuItem   @relation(fields: [menu_item_id], references: [id])
-  options      OrderItemOption[]
+  order     Order             @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  menu_item MenuItem          @relation(fields: [menu_item_id], references: [id])
+  options   OrderItemOption[]
+
+  @@index([order_id])
+  @@index([menu_item_id])
 }
 
-// 11. Order Item Options
 model OrderItemOption {
   order_item_id       BigInt
   menu_item_option_id BigInt
-  added_price         Float
+  added_price         Float // Prix ajouté au moment de la commande
 
-  order_item          OrderItem       @relation(fields: [order_item_id], references: [id])
-  menu_item_option    MenuItemOption  @relation(fields: [menu_item_option_id], references: [id])
+  order_item       OrderItem      @relation(fields: [order_item_id], references: [id], onDelete: Cascade)
+  menu_item_option MenuItemOption @relation(fields: [menu_item_option_id], references: [id])
 
   @@id([order_item_id, menu_item_option_id])
+  @@index([order_item_id])
 }
 
-// 12. Reviews
+model PaymentTransaction {
+  id                BigInt        @id @default(autoincrement())
+  order_id          BigInt        @unique
+  amount            Float
+  payment_method    PaymentMethod
+  status            PaymentStatus @default(pending)
+  transaction_id    String?       // ID externe (Stripe, CMI, etc.)
+  gateway_response  String?       // JSON response du gateway
+  created_at        DateTime      @default(now())
+  completed_at      DateTime?
+  refunded_at       DateTime?
+
+  order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@index([order_id])
+  @@index([status])
+  @@index([transaction_id])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🚗 DELIVERY SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Driver {
+  id              BigInt      @id @default(autoincrement())
+  first_name      String
+  last_name       String
+  email           String      @unique
+  phone           String      @unique
+  password_hash   String
+  avatar_url      String?
+  vehicle_type    VehicleType
+  vehicle_number  String?
+  vehicle_model   String?
+  license_number  String?
+  is_available    Boolean     @default(false)
+  is_online       Boolean     @default(false)
+  current_lat     Float?
+  current_lng     Float?
+  rating          Float       @default(5.0)
+  total_deliveries Int        @default(0)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  deleted_at      DateTime?
+
+  deliveries Delivery[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([is_available])
+  @@index([is_online])
+}
+
+model Delivery {
+  id                   BigInt    @id @default(autoincrement())
+  order_id             BigInt    @unique
+  driver_id            BigInt
+  pickup_lat           Float?
+  pickup_lng           Float?
+  delivery_lat         Float?
+  delivery_lng         Float?
+  distance_km          Float?
+  estimated_time       Int?      // Minutes
+  driver_notes         String?
+  assigned_at          DateTime  @default(now())
+  picked_up_at         DateTime?
+  delivered_at         DateTime?
+
+  order  Order  @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  driver Driver @relation(fields: [driver_id], references: [id])
+
+  @@index([order_id])
+  @@index([driver_id])
+  @@index([assigned_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎟️ COUPONS & PROMOTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Coupon {
+  id                  BigInt     @id @default(autoincrement())
+  code                String     @unique
+  type                CouponType
+  discount_value      Float      // Pourcentage (ex: 20) ou Montant (ex: 50)
+  min_order_amount    Float      @default(0)
+  max_discount        Float?     // Plafond de réduction
+  valid_from          DateTime
+  valid_until         DateTime
+  usage_limit         Int?       // Nombre max d'utilisations total
+  usage_limit_per_user Int?      // Limite par utilisateur
+  used_count          Int        @default(0)
+  is_active           Boolean    @default(true)
+  description         String?
+  created_at          DateTime   @default(now())
+
+  orders Order[]
+
+  @@index([code])
+  @@index([is_active])
+  @@index([valid_from, valid_until])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⭐ REVIEWS & RATINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
 model Review {
   id            BigInt   @id @default(autoincrement())
   user_id       BigInt
   restaurant_id BigInt
-  rating        Int
+  rating        Int      // 1 à 5
   comment       String?
+  food_rating   Int?     // Note de la nourriture
+  service_rating Int?    // Note du service
+  delivery_rating Int?   // Note de la livraison
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user       User       @relation(fields: [user_id], references: [id])
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([restaurant_id])
+  @@index([rating])
+  @@index([created_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔔 NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Notification {
+  id         BigInt           @id @default(autoincrement())
+  user_id    BigInt
+  type       NotificationType
+  title      String
+  message    String
+  data       String?          // JSON data
+  is_read    Boolean          @default(false)
+  created_at DateTime         @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, is_read])
+  @@index([created_at])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ❤️ USER FAVORITES
+// ═══════════════════════════════════════════════════════════════════════════
+
+model UserFavorite {
+  user_id       BigInt
+  restaurant_id BigInt
   created_at    DateTime @default(now())
 
-  user          User        @relation(fields: [user_id], references: [id])
-  restaurant    Restaurant  @relation(fields: [restaurant_id], references: [id])
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurant_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, restaurant_id])
+  @@index([user_id])
+  @@index([restaurant_id])
 }
 
-// 13. Restaurant Staff
-model RestaurantStaff {
-  id           BigInt   @id @default(autoincrement())
-  restaurant_id BigInt
-  email        String   @unique
-  password_hash String
-  role         StaffRole
+// ═══════════════════════════════════════════════════════════════════════════
+// 👨‍💼 ADMIN USERS
+// ═══════════════════════════════════════════════════════════════════════════
 
-  restaurant   Restaurant @relation(fields: [restaurant_id], references: [id])
-  owned_restaurants Restaurant[] @relation("OwnerRestaurants")
-}
-
-// 14. Admin Users
 model AdminUser {
-  id           BigInt   @id @default(autoincrement())
-  email        String   @unique
+  id            BigInt   @id @default(autoincrement())
+  email         String   @unique
   password_hash String
-  created_at   DateTime @default(now())
+  first_name    String
+  last_name     String
+  is_super_admin Boolean @default(false)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([email])
 }
