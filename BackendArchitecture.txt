@@ -1,0 +1,423 @@
+src/
+├── config/
+│   ├── database.js          # Prisma client configuration
+│   ├── environment.js        # Environment variables
+│   ├── jwt.js               # JWT configuration
+│   └── upload.js            # File upload configuration (multer)
+│
+├── middleware/
+│   ├── auth.js              # Authentication middleware
+│   ├── roleCheck.js         # Role-based access control
+│   ├── validation.js        # Request validation middleware
+│   ├── errorHandler.js      # Global error handler
+│   ├── rateLimiter.js       # Rate limiting
+│   └── upload.js            # File upload middleware
+│
+├── routes/
+│   ├── auth.routes.js
+│   ├── user.routes.js
+│   ├── restaurant.routes.js
+│   ├── menu.routes.js
+│   ├── order.routes.js
+│   ├── driver.routes.js
+│   ├── payment.routes.js
+│   ├── review.routes.js
+│   ├── coupon.routes.js
+│   ├── notification.routes.js
+│   ├── admin.routes.js
+│   └── index.js
+│
+├── controllers/
+│   ├── auth.controller.js
+│   ├── user.controller.js
+│   ├── restaurant.controller.js
+│   ├── menu.controller.js
+│   ├── order.controller.js
+│   ├── driver.controller.js
+│   ├── payment.controller.js
+│   ├── review.controller.js
+│   ├── coupon.controller.js
+│   ├── notification.controller.js
+│   └── admin.controller.js
+│
+├── services/
+│   ├── auth.service.js
+│   ├── user.service.js
+│   ├── restaurant.service.js
+│   ├── menu.service.js
+│   ├── order.service.js
+│   ├── driver.service.js
+│   ├── payment.service.js
+│   ├── delivery.service.js
+│   ├── notification.service.js
+│   ├── coupon.service.js
+│   ├── review.service.js
+│   ├── email.service.js
+│   └── sms.service.js
+│
+├── utils/
+│   ├── helpers.js
+│   ├── validators.js
+│   ├── constants.js
+│   ├── logger.js
+│   └── slugify.js
+│
+├── websocket/
+│   ├── orderTracking.js    # Real-time order tracking
+│   └── driverLocation.js   # Real-time driver location
+│
+└── app.js                   # Express app initialization
+
+
+
+Detailed Module Breakdown
+1. Authentication Module (auth.controller.js)
+
+registerUser - User registration
+registerRestaurant - Restaurant owner registration
+registerDriver - Driver registration
+registerAdmin - Admin registration
+login - Universal login (user/restaurant/driver/admin)
+logout - Logout functionality
+refreshToken - Refresh JWT token
+verifyEmail - Email verification
+forgotPassword - Password recovery request
+resetPassword - Reset password with token
+changePassword - Change password when logged in
+
+2. User Module (user.controller.js)
+
+getProfile - Get user profile
+updateProfile - Update user info
+uploadAvatar - Upload profile picture
+deleteAccount - Soft delete user account
+addAddress - Add delivery address
+updateAddress - Update address
+deleteAddress - Delete address
+setDefaultAddress - Set default address
+getAddresses - List all user addresses
+getFavoriteRestaurants - Get favorited restaurants
+addFavoriteRestaurant - Add restaurant to favorites
+removeFavoriteRestaurant - Remove from favorites
+
+3. Restaurant Module (restaurant.controller.js)
+
+createRestaurant - Create new restaurant
+updateRestaurant - Update restaurant details
+uploadLogo - Upload restaurant logo
+uploadBanner - Upload banner image
+deleteRestaurant - Soft delete restaurant
+getRestaurantById - Get single restaurant
+getRestaurantBySlug - Get restaurant by slug
+getAllRestaurants - List restaurants with filters
+searchRestaurants - Search by name/cuisine
+getRestaurantsByCategory - Filter by category
+getFeaturedRestaurants - Get featured restaurants
+getNearbyRestaurants - Get restaurants by location
+updateRestaurantStatus - Update status (admin)
+setFeaturedStatus - Set as featured (admin)
+getRestaurantCategories - Get all categories
+createCategory - Create category (admin)
+updateCategory - Update category (admin)
+deleteCategory - Delete category (admin)
+assignCategories - Assign categories to restaurant
+getRestaurantSchedule - Get opening hours
+updateSchedule - Update opening hours
+getRestaurantStats - Get restaurant statistics
+
+4. Restaurant Staff Module (restaurant.controller.js)
+
+addStaff - Add staff member
+updateStaff - Update staff info
+deleteStaff - Remove staff member
+getStaffList - List all staff
+getStaffById - Get staff details
+updateStaffRole - Change staff role
+
+5. Menu Module (menu.controller.js)
+
+createMenu - Create menu section
+updateMenu - Update menu section
+deleteMenu - Delete menu section
+reorderMenus - Update sort order
+getRestaurantMenus - Get all menus for restaurant
+createMenuItem - Add menu item
+updateMenuItem - Update menu item
+deleteMenuItem - Delete menu item
+uploadMenuItemImage - Upload item image
+toggleItemAvailability - Toggle available/unavailable
+setFeaturedItem - Set as featured
+reorderMenuItems - Update sort order
+getMenuItems - Get items in menu
+getMenuItemById - Get single item details
+addMenuItemOption - Add item option (extras)
+updateMenuItemOption - Update option
+deleteMenuItemOption - Delete option
+getMenuItemOptions - List item options
+
+6. Order Module (order.controller.js)
+
+createOrder - Place new order
+getOrderById - Get order details
+getOrderByNumber - Get order by order number
+getUserOrders - Get user order history
+getRestaurantOrders - Get restaurant orders
+updateOrderStatus - Update order status
+confirmOrder - Confirm order (restaurant)
+prepareOrder - Mark as preparing
+markOrderReady - Mark ready for pickup
+cancelOrder - Cancel order
+getActiveOrders - Get ongoing orders
+getOrderHistory - Get completed orders
+calculateOrderTotal - Calculate order pricing
+applyDiscount - Apply coupon discount
+validateCoupon - Validate coupon code
+getOrderStats - Order statistics
+getRevenueStats - Revenue statistics
+
+7. Order Items Module (within order.controller.js)
+
+addOrderItem - Add item to order
+updateOrderItem - Update order item
+removeOrderItem - Remove from order
+addOrderItemOptions - Add item options
+
+8. Payment Module (payment.controller.js)
+
+initiatePayment - Start payment process
+processPayment - Process payment transaction
+verifyPayment - Verify payment status
+refundPayment - Process refund
+getPaymentByOrderId - Get payment details
+getPaymentHistory - Payment transaction history
+updatePaymentStatus - Update payment status
+handleWebhook - Payment gateway webhook
+
+9. Driver Module (driver.controller.js)
+
+registerDriver - Driver registration
+getDriverProfile - Get driver profile
+updateDriverProfile - Update driver info
+uploadDriverAvatar - Upload profile picture
+updateVehicleInfo - Update vehicle details
+toggleAvailability - Set available/unavailable
+toggleOnlineStatus - Set online/offline
+updateLocation - Update current GPS location
+getDriverStats - Driver statistics
+getDriverEarnings - Earnings report
+getAllDrivers - List all drivers (admin)
+getNearbyDrivers - Get drivers near location
+getAvailableDrivers - Get available drivers
+
+10. Delivery Module (order.controller.js / delivery.service.js)
+
+assignDriver - Assign driver to order
+reassignDriver - Change assigned driver
+updateDeliveryStatus - Update delivery progress
+markPickedUp - Mark order picked up
+markDelivered - Mark order delivered
+getDeliveryDetails - Get delivery info
+trackDelivery - Real-time tracking
+calculateDeliveryFee - Calculate delivery cost
+estimateDeliveryTime - Estimate delivery ETA
+updateDriverLocation - Update GPS coordinates
+
+11. Coupon Module (coupon.controller.js)
+
+createCoupon - Create new coupon
+updateCoupon - Update coupon
+deleteCoupon - Delete coupon
+getCouponById - Get coupon details
+getCouponByCode - Get by code
+getAllCoupons - List all coupons
+validateCoupon - Check if valid
+applyCoupon - Apply to order
+getActiveCoupons - Get active coupons
+incrementUsage - Track usage count
+getUserCouponUsage - User coupon history
+
+12. Review Module (review.controller.js)
+
+createReview - Submit review
+updateReview - Update review
+deleteReview - Delete review
+getReviewById - Get single review
+getRestaurantReviews - Get restaurant reviews
+getUserReviews - Get user reviews
+calculateAverageRating - Update restaurant rating
+flagReview - Flag inappropriate review (admin)
+
+13. Notification Module (notification.controller.js)
+
+sendNotification - Send notification
+getUserNotifications - Get user notifications
+markAsRead - Mark notification read
+markAllAsRead - Mark all as read
+deleteNotification - Delete notification
+getUnreadCount - Count unread notifications
+sendOrderNotification - Order status notification
+sendPromotionalNotification - Marketing notification
+sendBulkNotification - Bulk send (admin)
+
+14. Admin Module (admin.controller.js)
+
+getDashboardStats - Platform statistics
+getAllUsers - User management
+getAllRestaurants - Restaurant management
+getAllDrivers - Driver management
+getAllOrders - Order management
+approveRestaurant - Approve restaurant
+suspendRestaurant - Suspend restaurant
+suspendUser - Suspend user
+suspendDriver - Suspend driver
+updateCommissionRate - Set commission
+getRevenueReport - Financial reports
+getOrderAnalytics - Order analytics
+getUserAnalytics - User analytics
+manageCategories - Category CRUD
+systemSettings - Platform settings
+
+
+Services Layer Details
+auth.service.js
+
+hashPassword - Hash password with bcrypt
+comparePassword - Verify password
+generateToken - Generate JWT
+verifyToken - Verify JWT
+generateRefreshToken - Generate refresh token
+generateVerificationToken - Email verification token
+sendVerificationEmail - Send verification email
+
+notification.service.js
+
+sendPushNotification - Push notification
+sendEmailNotification - Email notification
+sendSMSNotification - SMS notification
+createNotification - Database notification
+notifyOrderConfirmed - Order confirmed alert
+notifyOrderReady - Order ready alert
+notifyOrderDelivered - Delivery complete
+notifyDriverAssigned - Driver assigned
+
+email.service.js
+
+sendWelcomeEmail - Welcome message
+sendVerificationEmail - Email verification
+sendPasswordResetEmail - Password reset
+sendOrderConfirmation - Order receipt
+sendOrderStatusUpdate - Status change email
+
+payment.service.js
+
+initializePaymentGateway - Gateway setup
+createPaymentIntent - Payment intent
+capturePayment - Capture authorized payment
+refundTransaction - Process refund
+verifyWebhookSignature - Validate webhook
+
+
+
+
+
+
+
+
+
+
+JAWLA/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.js
+│   │   │   ├── environment.js
+│   │   │   ├── jwt.js
+│   │   │   └── upload.js
+│   │   │
+│   │   ├── middleware/
+│   │   │   ├── auth.js
+│   │   │   ├── roleCheck.js
+│   │   │   ├── validation.js
+│   │   │   ├── errorHandler.js
+│   │   │   ├── rateLimiter.js
+│   │   │   └── upload.js
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── user.routes.js
+│   │   │   ├── restaurant.routes.js
+│   │   │   ├── menu.routes.js
+│   │   │   ├── order.routes.js
+│   │   │   ├── driver.routes.js
+│   │   │   ├── payment.routes.js
+│   │   │   ├── review.routes.js
+│   │   │   ├── coupon.routes.js
+│   │   │   ├── notification.routes.js
+│   │   │   ├── admin.routes.js
+│   │   │   └── index.js
+│   │   │
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js
+│   │   │   ├── user.controller.js
+│   │   │   ├── restaurant.controller.js
+│   │   │   ├── menu.controller.js
+│   │   │   ├── order.controller.js
+│   │   │   ├── driver.controller.js
+│   │   │   ├── payment.controller.js
+│   │   │   ├── review.controller.js
+│   │   │   ├── coupon.controller.js
+│   │   │   ├── notification.controller.js
+│   │   │   └── admin.controller.js
+│   │   │
+│   │   ├── services/
+│   │   │   ├── auth.service.js
+│   │   │   ├── user.service.js
+│   │   │   ├── restaurant.service.js
+│   │   │   ├── menu.service.js
+│   │   │   ├── order.service.js
+│   │   │   ├── driver.service.js
+│   │   │   ├── payment.service.js
+│   │   │   ├── delivery.service.js
+│   │   │   ├── notification.service.js
+│   │   │   ├── coupon.service.js
+│   │   │   ├── review.service.js
+│   │   │   ├── email.service.js
+│   │   │   └── sms.service.js
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── helpers.js
+│   │   │   ├── validators.js
+│   │   │   ├── constants.js
+│   │   │   ├── logger.js
+│   │   │   └── slugify.js
+│   │   │
+│   │   ├── websocket/
+│   │   │   ├── orderTracking.js
+│   │   │   └── driverLocation.js
+│   │   │
+│   │   └── app.js
+│   │
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── migrations/
+│   │
+│   ├── uploads/           # للصور المرفوعة
+│   │   ├── avatars/
+│   │   ├── restaurants/
+│   │   └── menu-items/
+│   │
+│   ├── logs/             # للسجلات
+│   │
+│   ├── tests/            # للاختبارات
+│   │   ├── unit/
+│   │   └── integration/
+│   │
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── server.js         # نقطة البداية الرئيسية
+│   └── README.md
+│
+└── frontend/             # للمستقبل
